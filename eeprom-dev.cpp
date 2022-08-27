@@ -11,6 +11,9 @@ int currenttermchar = 0;
 int terminalwidth = 33;
 bool writemode = false;
 
+//cipher vars
+String cc = "0";
+
 //button vars
 unsigned long timer = 0;
 byte button_flag = 0;
@@ -31,6 +34,12 @@ void termprint(char thischar)
     Serial.print("\n");
     //Serial.print(thischar);
   }
+}
+
+void setciphercode(String thiscode)
+{
+  cc = thiscode;
+  thiscode = "0000000000000000";
 }
 
 void readblock(int blocknum)
@@ -113,15 +122,24 @@ void setup()
 void printmainmenu()
 {  
   Serial.println();
+  Serial.println();
+  Serial.println();
+  Serial.println();  
+  Serial.println();
+  Serial.println();
+  Serial.println();
   Serial.println("MummyCrypt v0.1");
+  Serial.println("mummycrypt@mentalburden.com");
+  Serial.println();
+  Serial.println("Serial keystroke echo is disabled, you will not see what you type...");
   Serial.println();
   Serial.println("Commands: ");
-  Serial.println("'readblock #' - Read a block from 0-9");
-  Serial.println("'writeblock #' - Write a block from 0-9");
+  Serial.println("'seccode #########' - Set the cipher code for this session, erased on reboot");
+  Serial.println("'readblock #' - Read a block 0-9");
+  Serial.println("'writeblock # anydatahere' - Write up to 1024 characters to block 0-9");
   Serial.println("'zeroize' - Erase all blocks and zeroize entire eeprom");
   Serial.println("'dump' - Display all data on the eeprom");
-  Serial.println("'reboot' - Reboot the device");
-  Serial.println("'help' - Display this message");
+  Serial.println("'reboot' - Reboot the device, this will reset the cipher code");
 }
 
 void buttonrestart()
@@ -131,14 +149,15 @@ void buttonrestart()
 
 void loop()
 {  
-   if (digitalRead(right) == LOW && digitalRead(left) == LOW && button_flag == 0)
+  //button ifs 
+  if (digitalRead(right) == LOW && digitalRead(left) == LOW && button_flag == 0)
   {
     timer = millis();  
     button_flag = 1;
     buttonrestart();
   }
   
-  
+  //serial user input ifs
   if (Serial.available() > 0) 
   {   
     String terminalread = Serial.readStringUntil('\n');
@@ -155,8 +174,7 @@ void loop()
       ESP.restart();
     }  
     else if(terminalread.indexOf("writeblock ") == 0)
-    {
-      Serial.println(terminalread);
+    {      
       String thisblock = terminalread.substring(11, 12);
       String splitdata = terminalread.substring(13, terminalread.length());
       //Serial.println(thisblock);
@@ -164,11 +182,17 @@ void loop()
       writeblock(thisblock.toInt(), splitdata);
     }     
     else if(terminalread.indexOf("readblock ") == 0)
-    {
-      Serial.println(terminalread);
+    {      
       String thisblock = terminalread.substring(10, terminalread.length());
       //Serial.println(thisblock);
       readblock(thisblock.toInt());
-    }      
+    }    
+    else if(terminalread.indexOf("setcode ") == 0)
+    {      
+      String thiscode = terminalread.substring(8, terminalread.length());
+      //Serial.println(thiscode);
+      setciphercode(thiscode);
+      thiscode = "0000000000000000";
+    }   
   }  
 }
