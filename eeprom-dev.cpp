@@ -4,11 +4,19 @@
 #include "Wire.h"
 #include "uEEPROMLib.h"
 
+//eeprom vars
 uEEPROMLib eeprom(0x50);
 int currentblock = 0;
 int currenttermchar = 0;
 int terminalwidth = 33;
 bool writemode = false;
+
+//button vars
+unsigned long timer = 0;
+byte button_flag = 0;
+const byte center = 17;
+const byte left = 18;
+const byte right = 19;
 
 void termprint(char thischar)
 {
@@ -21,13 +29,13 @@ void termprint(char thischar)
   {
     currenttermchar = 0;
     Serial.print("\n");
-    Serial.print(thischar);
+    //Serial.print(thischar);
   }
 }
 
 void readblock(int blocknum)
 {
-  Serial.println("Dumping block #" + String(blocknum) + "...");
+  Serial.println("Fetching from block #" + String(blocknum) + "...");
   int eeprom_start_address = blocknum * 2048;
   for (int i = eeprom_start_address; i < eeprom_start_address + 1024; i++)
   {  
@@ -41,6 +49,7 @@ void readblock(int blocknum)
 
 void writeblock(int blocknum, String terminalread)
 {          
+    Serial.println("Writing to block #" + String(blocknum) + "...");
     int eeprom_start_address = blocknum * 2048;
     int inputlen = terminalread.length();
     char spacechar = ' ';
@@ -95,19 +104,41 @@ void setup()
   Serial.println("Mummycrypt-v0.1 firmware testing 25aug22");
   Serial.println();
   Wire.begin();
+  pinMode(left, INPUT_PULLUP);
+  pinMode(right, INPUT_PULLUP);
+  pinMode(center, INPUT_PULLUP);
   printmainmenu();
 }
 
 void printmainmenu()
 {  
   Serial.println();
+  Serial.println("MummyCrypt v0.1");
   Serial.println();
-  Serial.println();
-  Serial.println("Options: Zeroize, Dump, Write1-4, Read1-4");
+  Serial.println("Commands: ");
+  Serial.println("'readblock #' - Read a block from 0-9");
+  Serial.println("'writeblock #' - Write a block from 0-9");
+  Serial.println("'zeroize' - Erase all blocks and zeroize entire eeprom");
+  Serial.println("'dump' - Display all data on the eeprom");
+  Serial.println("'reboot' - Reboot the device");
+  Serial.println("'help' - Display this message");
+}
+
+void buttonrestart()
+{
+  ESP.restart();
 }
 
 void loop()
 {  
+   if (digitalRead(right) == LOW && digitalRead(left) == LOW && button_flag == 0)
+  {
+    timer = millis();  
+    button_flag = 1;
+    buttonrestart();
+  }
+  
+  
   if (Serial.available() > 0) 
   {   
     String terminalread = Serial.readStringUntil('\n');
@@ -128,24 +159,16 @@ void loop()
       Serial.println(terminalread);
       String thisblock = terminalread.substring(11, 12);
       String splitdata = terminalread.substring(13, terminalread.length());
-      Serial.println(thisblock);
-      Serial.println(splitdata);
+      //Serial.println(thisblock);
+      //Serial.println(splitdata);
       writeblock(thisblock.toInt(), splitdata);
     }     
     else if(terminalread.indexOf("readblock ") == 0)
     {
       Serial.println(terminalread);
       String thisblock = terminalread.substring(10, terminalread.length());
-      Serial.println(thisblock);
+      //Serial.println(thisblock);
       readblock(thisblock.toInt());
     }      
-            //    else if(terminalread.indexOf("readpage ") == 0)
-            //    {
-            //      Serial.println(terminalread);
-            //      String thisblock = terminalread.substring(9, 10);
-            //      String thispage = terminalread.substring(12, terminalread.length());
-            //      Serial.println(thisblock);
-            //      readblock(thisblock.toInt(), thispage.toInt());
-            //    }  
   }  
 }
