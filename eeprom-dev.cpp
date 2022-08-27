@@ -161,15 +161,15 @@ void loop()
   if (Serial.available() > 0) 
   {   
     String terminalread = Serial.readStringUntil('\n');
-    if(terminalread.equals("zeroize"))
+    if(terminalread.indexOf("zeroize") == 0)
     {
       zeroize();
     }
-    else if(terminalread.equals("dump"))
+    else if(terminalread.indexOf("dump") == 0)
     {
       dump();
     }
-    else if(terminalread.equals("reboot"))
+    else if(terminalread.indexOf("reboot") == 0)
     {
       ESP.restart();
     }  
